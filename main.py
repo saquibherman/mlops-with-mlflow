@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 # get arguments from command
 parser = argparse.ArgumentParser()
-parser.add_argument("--alpha", type=float, required=False, default=0.7)
-parser.add_argument("--l1_ratio", type=float, required=False, default=0.7)
+parser.add_argument("--alpha", type=float, required=False, default=0.5)
+parser.add_argument("--l1_ratio", type=float, required=False, default=0.5)
 args = parser.parse_args()
 
 # evaluation function
@@ -45,24 +45,18 @@ if __name__ == "__main__":
 
     alpha = args.alpha
     l1_ratio = args.l1_ratio
-    exp = mlflow.set_experiment(experiment_name="experment_1")
 
-    with mlflow.start_run(experiment_id=exp.experiment_id):
-        lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
-        lr.fit(train_x, train_y)
+    mlflow.set_tracking_uri(uri="")
 
-        predicted_qualities = lr.predict(test_x)
+    print("The set tracking uri is ", mlflow.get_tracking_uri())
+    lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
+    lr.fit(train_x, train_y)
 
-        (rmse, mae, r2) = eval_metrics(test_y, predicted_qualities)
+    predicted_qualities = lr.predict(test_x)
 
-        print("Elasticnet model (alpha={:f}, l1_ratio={:f}):".format(alpha, l1_ratio))
-        print("  RMSE: %s" % rmse)
-        print("  MAE: %s" % mae)
-        print("  R2: %s" % r2)
+    (rmse, mae, r2) = eval_metrics(test_y, predicted_qualities)
 
-        mlflow.log_param("alpha", alpha)
-        mlflow.log_param("l1_ratio", l1_ratio)
-        mlflow.log_metric("rmse", rmse)
-        mlflow.log_metric("r2", r2)
-        mlflow.log_metric("mae", mae)
-        mlflow.sklearn.log_model(lr, "mymodel")
+    print("Elasticnet model (alpha={:f}, l1_ratio={:f}):".format(alpha, l1_ratio))
+    print("  RMSE: %s" % rmse)
+    print("  MAE: %s" % mae)
+    print("  R2: %s" % r2)
