@@ -8,14 +8,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import ElasticNet
 import mlflow
 import mlflow.sklearn
+from pathlib import Path
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
 
 # get arguments from command
 parser = argparse.ArgumentParser()
-parser.add_argument("--alpha", type=float, required=False, default=0.5)
-parser.add_argument("--l1_ratio", type=float, required=False, default=0.5)
+parser.add_argument("--alpha", type=float, required=False, default=0.7)
+parser.add_argument("--l1_ratio", type=float, required=False, default=0.7)
 args = parser.parse_args()
 
 # evaluation function
@@ -32,7 +33,6 @@ if __name__ == "__main__":
 
     # Read the wine-quality csv file from local
     data = pd.read_csv("red-wine-quality.csv")
-    data.to_csv("data/red-wine-quality.csv", index=False)
 
     # Split the data into training and test sets. (0.75, 0.25) split.
     train, test = train_test_split(data)
@@ -49,14 +49,36 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri(uri="")
 
     print("The set tracking uri is ", mlflow.get_tracking_uri())
-    lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
-    lr.fit(train_x, train_y)
+    exp_id = mlflow.create_experiment(
+        name="exp_create_exp_artifact",
+        tags={"version": "v1", "priority": "p1"},
+        artifact_location=Path.cwd().joinpath("myartifacts").as_uri()
+    )
+    get_exp = mlflow.get_experiment(exp_id)
 
-    predicted_qualities = lr.predict(test_x)
+    print("Name: {}".format(get_exp.name))
+    print("Experiment_id: {}".format(get_exp.experiment_id))
+    print("Artifact Location: {}".format(get_exp.artifact_location))
+    print("Tags: {}".format(get_exp.tags))
+    print("Lifecycle_stage: {}".format(get_exp.lifecycle_stage))
+    print("Creation timestamp: {}".format(get_exp.creation_time))
 
-    (rmse, mae, r2) = eval_metrics(test_y, predicted_qualities)
+    with mlflow.start_run(experiment_id=exp_id):
+        lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
+        lr.fit(train_x, train_y)
 
-    print("Elasticnet model (alpha={:f}, l1_ratio={:f}):".format(alpha, l1_ratio))
-    print("  RMSE: %s" % rmse)
-    print("  MAE: %s" % mae)
-    print("  R2: %s" % r2)
+        predicted_qualities = lr.predict(test_x)
+
+        (rmse, mae, r2) = eval_metrics(test_y, predicted_qualities)
+
+        print("Elasticnet model (alpha={:f}, l1_ratio={:f}):".format(alpha, l1_ratio))
+        print("  RMSE: %s" % rmse)
+        print("  MAE: %s" % mae)
+        print("  R2: %s" % r2)
+
+        mlflow.log_param("alpha", alpha)
+        mlflow.log_param("l1_ratio", l1_ratio)
+        mlflow.log_metric("rmse", rmse)
+        mlflow.log_metric("r2", r2)
+        mlflow.log_metric("mae", mae)
+        mlflow.sklearn.log_model(lr, "mymodel")
