@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import ElasticNet
+from pathlib import Path
 import os
 
 # MLflow 3.x blocks the file store (./mlruns) by default; allow it for uri=""
@@ -13,10 +14,12 @@ os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
 
 import mlflow
 import mlflow.sklearn
-from pathlib import Path
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
+
+# Dataset is shared by all lessons: <repo root>/data/red-wine-quality.csv
+DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "red-wine-quality.csv"
 
 # get arguments from command
 parser = argparse.ArgumentParser()
@@ -37,7 +40,7 @@ if __name__ == "__main__":
     np.random.seed(40)
 
     # Read the wine-quality csv file from local
-    data = pd.read_csv("red-wine-quality.csv")
+    data = pd.read_csv(DATA_PATH)
 
     # Split the data into training and test sets. (0.75, 0.25) split.
     train, test = train_test_split(data)
@@ -52,19 +55,29 @@ if __name__ == "__main__":
     l1_ratio = args.l1_ratio
 
     mlflow.set_tracking_uri(uri="")
-
     print("The set tracking uri is ", mlflow.get_tracking_uri())
-    exp = mlflow.set_experiment(experiment_name="experiment_1")
-    #get_exp = mlflow.get_experiment(exp_id)
 
-    print("Name: {}".format(exp.name))
-    print("Experiment_id: {}".format(exp.experiment_id))
-    print("Artifact Location: {}".format(exp.artifact_location))
-    print("Tags: {}".format(exp.tags))
-    print("Lifecycle_stage: {}".format(exp.lifecycle_stage))
-    print("Creation timestamp: {}".format(exp.creation_time))
+    # create_experiment fails if the name already exists, so reuse it on re-runs
+    exp_name = "exp_create_exp_artifact"
+    existing_exp = mlflow.get_experiment_by_name(exp_name)
+    if existing_exp is None:
+        exp_id = mlflow.create_experiment(
+            name=exp_name,
+            tags={"version": "v1", "priority": "p1"},
+            artifact_location=Path.cwd().joinpath("myartifacts").as_uri()
+        )
+    else:
+        exp_id = existing_exp.experiment_id
+    get_exp = mlflow.get_experiment(exp_id)
 
-    with mlflow.start_run(experiment_id=exp.experiment_id):
+    print("Name: {}".format(get_exp.name))
+    print("Experiment_id: {}".format(get_exp.experiment_id))
+    print("Artifact Location: {}".format(get_exp.artifact_location))
+    print("Tags: {}".format(get_exp.tags))
+    print("Lifecycle_stage: {}".format(get_exp.lifecycle_stage))
+    print("Creation timestamp: {}".format(get_exp.creation_time))
+
+    with mlflow.start_run(experiment_id=exp_id):
         lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
         lr.fit(train_x, train_y)
 
