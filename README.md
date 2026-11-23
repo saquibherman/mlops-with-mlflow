@@ -69,6 +69,7 @@ Main packages: `mlflow`, `scikit-learn`, `pandas`, `numpy` (see [`pyproject.toml
 
 ```
 mlops-with-mlflow/
+├── assets/                       # screenshots used in these notes
 ├── data/
 │   └── red-wine-quality.csv      # dataset shared by all lessons
 ├── examples/
@@ -161,11 +162,30 @@ uv run mlflow ui --backend-store-uri sqlite:///mlflow.db
 # open http://127.0.0.1:5000
 ```
 
-What you can do in the UI:
-- **Experiments page:** pick `experiment_1` to see one row per run, with columns for every parameter and metric.
-- **Sort and filter:** sort by a metric column, or search with an expression such as `metrics.rmse < 0.8 and params.alpha = "0.3"`.
-- **Compare:** select two or more runs and click **Compare** to see parallel-coordinates, scatter and contour plots of parameters vs. metrics.
-- **Run page:** parameters, metrics, tags, and the **Artifacts** tab with the logged model (`MLmodel`, `requirements.txt` and so on).
+The screenshots below come from MLflow 3.18, after five runs of `basic_regression_mlflow.py` with different `alpha` / `l1_ratio` values.
+
+**Home page.** The left sidebar leads to **Experiments**. *Recent Experiments* lists `experiment_1` and the `Default` experiment that MLflow always creates. MLflow 3.x also shows GenAI features (tracing, prompts, AI Gateway), which this course doesn't use yet.
+
+![MLflow UI home page](./assets/mlflow_ui_home.png)
+
+**Training runs.** Open `experiment_1` → **Training runs** for one row per run. Each run gets a random name (for example `honorable-fish-183`), and the table shows its duration, source script, logged model (`mymodel`), metrics (`mae`, `r2`, `rmse`) and parameters (`alpha`, `l1_ratio`). Click a column to sort, or filter runs with the search box, for example `metrics.rmse < 0.75 and params.alpha = "0.1"`.
+
+![Training runs of experiment_1](./assets/mlflow_ui_runs.png)
+
+**Comparing runs.** Tick two or more runs and click **Compare**. The **Parallel Coordinates Plot** draws one line per run across `alpha` → `l1_ratio` → `rmse`, colored by `rmse`. Here the lowest error (≈0.713) comes from small `alpha` (weak regularization), and the highest (≈0.831) from `alpha = 0.7`. The page also has Scatter, Box and Contour plots, plus side-by-side tables of run details and parameters.
+
+![Comparing 5 runs](./assets/mlflow_ui_compare.png)
+
+**Logged model.** In MLflow 3.x, `log_model` creates a **logged model**, a first-class object with its own page and an ID like `m-...`. The page shows the model's metrics and parameters, its source run, the script it was logged from, and the **git branch and commit** of that code. That last part records which code version produced the model, which helps reproducibility. **Register model** sends it to the Model Registry, covered in a later section.
+
+![Logged model page](./assets/mlflow_ui_logged_model.png)
+
+**Run artifacts.** A run's **Artifacts** tab lists the files `log_model` saved:
+- `MLmodel`: the descriptor (flavors, how to load the model, signature);
+- `model.skops`: the serialized scikit-learn model (`skops` is a safer format than pickle);
+- `conda.yaml`, `python_env.yaml`, `requirements.txt`: the environment needed to load the model again.
+
+![Artifacts of a run](./assets/mlflow_ui_run_artifacts.png)
 
 ## 4. MLflow Logging Functions
 
@@ -283,6 +303,10 @@ Don't point a file store and a SQLite store at the same folder. SQLite runs save
 ## Changelog
 
 Newest first. Full diffs are in the git history: `git log -p --follow <file>`.
+
+### Add MLflow UI screenshots
+- Added five MLflow 3.18 UI screenshots to `assets/`: home page, training runs, run comparison, logged model and run artifacts.
+- Expanded [MLflow UI - 01_tracking](#mlflow-ui---01_tracking) to walk through each screen: run table and search, parallel coordinates comparison, logged models with git commit tracking, and the artifact files.
 
 ### Restructure into per-lesson folders
 - Split the code into lesson folders: `examples/01_tracking/` (basic tracking) and `examples/02_logging/` (`uri.py`, `create_experiment.py`, `set_experiment.py`), rebuilt from the earlier versions of `main.py` in the git history.
