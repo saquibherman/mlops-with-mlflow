@@ -46,14 +46,19 @@ if __name__ == "__main__":
     alpha = args.alpha
     l1_ratio = args.l1_ratio
 
-    mlflow.set_tracking_uri(uri="")
+    mlflow.set_tracking_uri(uri="sqlite:///mlflow.db")
 
     print("The set tracking uri is ", mlflow.get_tracking_uri())
-    exp_id = mlflow.create_experiment(
-        name="exp_create_exp_artifact",
-        tags={"version": "v1", "priority": "p1"},
-        artifact_location=Path.cwd().joinpath("myartifacts").as_uri()
-    )
+    exp_name = "exp_create_exp_artifact"
+    existing_exp = mlflow.get_experiment_by_name(exp_name)
+    if existing_exp is None:
+        exp_id = mlflow.create_experiment(
+            name=exp_name,
+            tags={"version": "v1", "priority": "p1"},
+            artifact_location=Path.cwd().joinpath("myartifacts").as_uri()
+        )
+    else:
+        exp_id = existing_exp.experiment_id
     get_exp = mlflow.get_experiment(exp_id)
 
     print("Name: {}".format(get_exp.name))
