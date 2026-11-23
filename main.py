@@ -6,6 +6,11 @@ import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import ElasticNet
+import os
+
+# MLflow 3.x blocks the file store (./mlruns) by default; allow it for uri=""
+os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
+
 import mlflow
 import mlflow.sklearn
 from pathlib import Path
@@ -46,29 +51,20 @@ if __name__ == "__main__":
     alpha = args.alpha
     l1_ratio = args.l1_ratio
 
-    mlflow.set_tracking_uri(uri="sqlite:///mlflow.db")
+    mlflow.set_tracking_uri(uri="")
 
     print("The set tracking uri is ", mlflow.get_tracking_uri())
-    exp_name = "exp_create_exp_artifact"
-    existing_exp = mlflow.get_experiment_by_name(exp_name)
-    if existing_exp is None:
-        exp_id = mlflow.create_experiment(
-            name=exp_name,
-            tags={"version": "v1", "priority": "p1"},
-            artifact_location=Path.cwd().joinpath("myartifacts").as_uri()
-        )
-    else:
-        exp_id = existing_exp.experiment_id
-    get_exp = mlflow.get_experiment(exp_id)
+    exp = mlflow.set_experiment(experiment_name="experiment_1")
+    #get_exp = mlflow.get_experiment(exp_id)
 
-    print("Name: {}".format(get_exp.name))
-    print("Experiment_id: {}".format(get_exp.experiment_id))
-    print("Artifact Location: {}".format(get_exp.artifact_location))
-    print("Tags: {}".format(get_exp.tags))
-    print("Lifecycle_stage: {}".format(get_exp.lifecycle_stage))
-    print("Creation timestamp: {}".format(get_exp.creation_time))
+    print("Name: {}".format(exp.name))
+    print("Experiment_id: {}".format(exp.experiment_id))
+    print("Artifact Location: {}".format(exp.artifact_location))
+    print("Tags: {}".format(exp.tags))
+    print("Lifecycle_stage: {}".format(exp.lifecycle_stage))
+    print("Creation timestamp: {}".format(exp.creation_time))
 
-    with mlflow.start_run(experiment_id=exp_id):
+    with mlflow.start_run(experiment_id=exp.experiment_id):
         lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
         lr.fit(train_x, train_y)
 
